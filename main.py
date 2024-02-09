@@ -64,16 +64,22 @@ try:
     with open(file_path, 'r') as file:
 
         file_content = file.read()
-        file_content = file_content + "give me the functionality of the code in terms of routes (with input, output and logic), models required for database and their definition, database connection type and input for it strictly, server configuration of port,etc" 
+        file_content =  "give me a pseudo code of the code in terms of routes input, output and functionality with exact fields in request and response, specify exact values for the inputs and outputs always, add a description about every step. Provide the same for the functions called inside the routes. Provide models required for database and their definition, database connection type and input for it strictly, server configuration of port,etc. Give python/flask alternative libraries to the libraries used in the code wherever required, avoid deprecated libraries."  + file_content
         # data_object = json.loads(file_content)
 
         # start_path = "src/" + data_object["main"]
         # print(open(start_path,'r').read())
 
+        # Connect to the database in the same way described in the instructions.
+
         output_content = llm.invoke(file_content)
         print(output_content.content)
-        output_content.content = output_content.content + "\n write a code in python flask framework using this information. Connect to the database in the same way described in the instructions. Use PyMongo for database connection. Give the code only, do not write instructions or anything else."
+        output_content.content = output_content.content + "\n write a code for all the functions in python flask framework using this information. Follow all the following instructions strictly : Use PyMongo for database connection if mongodb is used. Use the time library for time-related logic. Parse objects returned from database properly, take care that ObjectId is not JSON serializable, use bson library. Import all the libraries used in the output code. Get the necessary environment variables from '.env' file. Solve the tls handshake error in database connection by using certifi library, do not set 'tls_ca_file' in app.config. Never jsonify objects containing ObjectId directly. Never return objects containing ObjectId directly. Give the code only, do not write instructions or anything else."
         output_code = llm.invoke(output_content.content)
+
+        # output_code.content = output_code.content + "\n check if cursor object is accessed properly. give the debugged code only, do not write instructions or anything else. "
+
+        # output_debug = llm.invoke(output_code.content)
 
 
 except FileNotFoundError:
