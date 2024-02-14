@@ -46,6 +46,8 @@
 
 
 from langchain_openai import ChatOpenAI
+from langchain.chains import LLMChain, SimpleSequentialChain
+from langchain.prompts.prompt import PromptTemplate
 import os
 from dotenv import load_dotenv
 from pathlib import Path
@@ -54,7 +56,8 @@ dotenv_path = Path('.env')
 load_dotenv(dotenv_path=dotenv_path)
 openai_api_key = os.getenv('OPENAI_API_KEY')
 
-llm = ChatOpenAI(openai_api_key=openai_api_key, temperature=0)
+llm = ChatOpenAI(openai_api_key=openai_api_key, temperature=0, model="gpt-3.5-turbo")
+llm2 = ChatOpenAI(openai_api_key=openai_api_key, temperature=0, model="gpt-3.5-turbo")
 
 
 file_path = 'src/server.js'
@@ -63,19 +66,43 @@ out_path = 'output/server.py'
 try:
     with open(file_path, 'r') as file:
 
+        
+
         file_content = file.read()
-        file_content =  "give me a pseudo code of the code in terms of routes input, output and functionality with exact fields in request and response, specify exact values for the inputs and outputs always, add a description about every step. Provide the same for the functions called inside the routes. Provide models required for database and their definition, database connection type and input for it strictly, server configuration of port,etc. Give python/flask alternative libraries to the libraries used in the code wherever required, avoid deprecated libraries."  + file_content
+        src_template = PromptTemplate(input_variables=["code"], template="""give me a pseudo code of the code.\n 
+                                      Provide the same for the functions called inside the routes.\n
+                                     Provide models required for database and their definition, database connection type and input for it strictly, server configuration of port,etc. \n {code}""")
+
+
+        # file_content =  "give me a pseudo code of the code. Provide the same for the functions called inside the routes. Provide models required for database and their definition, database connection type and input for it strictly, server configuration of port,etc. "  + file_content
         # data_object = json.loads(file_content)
 
         # start_path = "src/" + data_object["main"]
         # print(open(start_path,'r').read())
 
         # Connect to the database in the same way described in the instructions.
+        chain_one = LLMChain(llm=llm, prompt = src_template)
+        # output_content = llm.invoke(file_content)
+        # print(output_content.content)
+        op_template = PromptTemplate(input_variables=["pseudocode"], template=""" {pseudocode} \n write a code for all the functions in python flask framework using this information. 
+        Follow all the following instructions strictly : 
+        Use PyMongo for database connection if mongodb is used, do not use MongoClient.\n
+        Use the time library for time-related logic.\n
+        Parse objects returned from database properly, take care that ObjectId is not JSON serializable, use bson library. \n 
+        Import all the libraries used in the output code.\n
+        Get the necessary environment variables from '.env' file using dotenv library. \n
+        Solve the tls handshake error in database connection by using certifi library, do not set 'MONGO_TLS_CA_FILE' in app.config.\n 
+        Never jsonify objects containing ObjectId directly. \n
+        Never return objects containing ObjectId directly.\n
+        Give the code only, do not write instructions or anything else, such that I can directly write it to a file. \n """)
 
-        output_content = llm.invoke(file_content)
-        print(output_content.content)
-        output_content.content = output_content.content + "\n write a code for all the functions in python flask framework using this information. Follow all the following instructions strictly : Use PyMongo for database connection if mongodb is used. Use the time library for time-related logic. Parse objects returned from database properly, take care that ObjectId is not JSON serializable, use bson library. Import all the libraries used in the output code. Get the necessary environment variables from '.env' file. Solve the tls handshake error in database connection by using certifi library, do not set 'tls_ca_file' in app.config. Never jsonify objects containing ObjectId directly. Never return objects containing ObjectId directly. Give the code only, do not write instructions or anything else."
-        output_code = llm.invoke(output_content.content)
+        # output_content.content = output_content.content + "\n write a code for all the functions in python flask framework using this information. Follow all the following instructions strictly : Use PyMongo for database connection if mongodb is used. Use the time library for time-related logic. Parse objects returned from database properly, take care that ObjectId is not JSON serializable, use bson library. Import all the libraries used in the output code. Get the necessary environment variables from '.env' file. Solve the tls handshake error in database connection by using certifi library, do not set 'tls_ca_file' in app.config. Never jsonify objects containing ObjectId directly. Never return objects containing ObjectId directly. Give the code only, do not write instructions or anything else."
+        # output_code = llm.invoke(output_content.content)
+
+        chain_two = LLMChain(llm=llm2, prompt = op_template)
+
+        final_chain = SimpleSequentialChain(chains=[chain_one, chain_two])
+        final_output = final_chain.invoke(file_content)
 
         # output_code.content = output_code.content + "\n check if cursor object is accessed properly. give the debugged code only, do not write instructions or anything else. "
 
@@ -99,13 +126,20 @@ try:
         # print(open(start_path,'r').read())
 
         # output_content = llm.invoke(file_content)
-
-        file.write(output_code.content)
+        output = ""
+        print(final_output['output'][0:8])
+        if final_output['output'][0:9] == "```python":
+            end = len(final_output['output'])-3
+            print(end)
+            output = final_output['output'][9:end]
+            print(output)
+        else:
+            file.write(final_output['output'])
+        file.write(output)
 
 
 except FileNotFoundError:
     print(f"The file at {file_path} does not exist.")
 except Exception as e:
     print(f"An error occurred: {e}")
-
 
