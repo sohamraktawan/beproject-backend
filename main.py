@@ -151,6 +151,7 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 import json
+import time
 
 dotenv_path = Path('.env')
 load_dotenv(dotenv_path=dotenv_path)
@@ -316,9 +317,65 @@ for py_file in iterate_py_files(out_dir):
     # print()
     complete_out_code = ""
     # complete_code = llm.invoke("""The structure of the flask project is as follows : There is a server with the name""" + data["server"]["name"] + """. With the server, there are the "blueprints","models" and "controllers" directories. All the blueprints are present in the "blueprints", models are present in "models" and controllers are present in the "controllers" directories. We need to import all the blueprint files in the server file. We need to import all controller files in the blueprint files. We need to import all the model files in the controller files. This file is a """ + data_dict[os.path.basename(py_file)] + """. The blueprint file names are""" + blueprints + """ The model file names are """ + models + """ The controller file names are """ + controllers + """Modify the code given below and just import all the necessary files as instructed above strictly, without changing previous code strictly. Do not import the file itself. Do not use '.' operator before directory while importing. Use proper project hierarchy while importing files. Give the code only, do not write instructions or anything else. \n""" + return_file_content(py_file))
-    
+    time.sleep(10)
 
-    complete_out_code = llm.invoke(complete_code + """I need to convert this code to Python Flask Framework project. Write code for the file """ + os.path.basename(py_file) + """". This file is a """ + data_dict[os.path.basename(py_file)] + """. The project contains server, blueprints, models and controllers. Follow the following instructions : The server file will establish database connection, it will register blueprints and start the server. The blueprint files will call particular functions from controller files for a specific route. The model files contain database models. The controller files will contain functions for specific implementation for example "signup()". Do not write any route implementation in server and blueprint files strictly. Controller files do not contain blueprints. Use PyMongo for database connection if mongodb is used. Follow this project structure strictly. Give the code only, do not write instructions or anything else.""")
+    complete_out_code_raw = llm.invoke(complete_code + """I need to convert this code to Python Flask Framework project, which contains server, blueprints, models and controllers. The server is """ + data["server"]["name"] + """ . The blueprints are """ + blueprints + """ The models are """ + models + """ The controllers are """ + controllers + """ Write code for the file """ + os.path.basename(py_file) + """". This file is a """ + data_dict[os.path.basename(py_file)] + """.
+    
+    Follow the following instructions while writing code for this file : 
+    1) The server file code will establish database connection, it will register flask blueprints and start the server only and nothing else. 
+    2) The blueprint file code will contain route names only and will call particular python functions from controller files for a specific route. 
+    3) Do not write any route implementation in server, blueprint and model files strictly. 
+    4) Blueprints should contain route names which are present in above code only, do not add extra route names. 
+    5) The model file code contains database models only and should not contain any implementation.
+    6) Do not declare controller file code as a python Blueprint, they just contain python functions strictly and should not mention anything about routes. 
+    7) The controller file code will contain python functions for specific elaborate implementation for example "def signup()" and should contain the elaborate code for each function.
+    8) Use PyMongo for database connection if mongodb is used. Follow this project structure strictly. 
+                                   
+    Give the code only, do not write instructions or anything else strictly, so that it can be directly written in a python file.""")
+
+
+    complete_out_code = llm.invoke(complete_out_code_raw.content + """Extract the code from this and return. Give the code only, do not write instructions or anything else strictly. """)
     print(complete_out_code.content)
     with open(py_file, 'w') as file:
-        file.write(complete_out_code.content)
+        if complete_out_code.content[0:9] == "```python":
+            end = len(complete_out_code.content)-3
+            print(end)
+            output =complete_out_code.content[9:end]
+            file.write(output)
+        else:
+            file.write(complete_out_code.content)
+
+    
+complete_output_code = ""
+
+for py_file in iterate_py_files(out_dir):
+
+    complete_output_code = complete_output_code + "\nFile:" + py_file
+    complete_output_code = complete_output_code + "\nContent:\n" + return_file_content(py_file)
+
+time.sleep(20)
+#Correct the import statements in the code given below based on the code given above and add import statements for all the necessary entities as instructed strictly, keeping the existing code same.
+
+for py_file in iterate_py_files(out_dir):
+    import_code = llm.invoke(complete_output_code + """The structure of the flask project is as follows : There is a server with the name""" + data["server"]["name"] + """ and the project contains server, blueprints, models and controllers. With the server, there are the "blueprints","models" and "controllers" directories. All the blueprints are present in the "blueprints" directory, models are present in "models" directory and controllers are present in the "controllers" directory. The below file name is """+ os.path.basename(py_file) + """ The below file is a """ + data_dict[os.path.basename(py_file)] + """. The blueprint file names are""" + blueprints + """ The model file names are """ + models + """ The controller file names are """ + controllers + """ 
+    
+    Modify the code given below to import all the correct files required.
+                             
+    Instructions for modifying code are: 
+    1) Do not remove any existing logic or implementation from the below code strictly. 
+    2) Import all python functions in controller files in blueprint file code. 
+    3) Import all the models in controller file code. 
+    4) Import blueprints and register blueprints in server file code. 
+    5) Import python modules required in the code. 
+    6) Do not import the file inside itself. Use proper project hierarchy while importing files. 
+    
+    Give the code only, do not write instructions or anything else strictly. \n""" + """Code : \n""" + return_file_content(py_file))
+
+    with open(py_file, 'w') as file:
+        if import_code.content[0:9] == "```python":
+            end = len(import_code.content)-3
+            print(end)
+            output = import_code.content[9:end]
+            file.write(output)
+        else:
+            file.write(import_code.content)
