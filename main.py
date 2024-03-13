@@ -219,7 +219,7 @@ output = llm.invoke(complete_code + """I need to convert this code to Python Fla
     },
                     
     {"models":
-        [{ "name" : <file-name> , "code" : <model-code>},{"name" : <file-name> , "code" : <model-code> }, ...]\
+        [{ "name" : <file-name> , "code" : <model-code>},{"name" : <file-name> , "code" : <model-code> }, ...]
     },
                     
     {"controllers":
@@ -349,14 +349,19 @@ for py_file in iterate_py_files(out_dir):
     
 complete_output_code = ""
 
+
+
+#Correct the import statements in the code given below based on the code given above and add import statements for all the necessary entities as instructed strictly, keeping the existing code same.
 for py_file in iterate_py_files(out_dir):
 
     complete_output_code = complete_output_code + "\nFile:" + py_file
     complete_output_code = complete_output_code + "\nContent:\n" + return_file_content(py_file)
 
-#Correct the import statements in the code given below based on the code given above and add import statements for all the necessary entities as instructed strictly, keeping the existing code same.
 
 for py_file in iterate_py_files(out_dir):
+    complete_output_code = ""
+
+   
     import_code = llm.invoke(complete_output_code + """The structure of the flask project is as follows : There is a server with the name""" + data["server"]["name"] + """ and the project contains server, blueprints, models and controllers. With the server, there are the "blueprints","models" and "controllers" directories. All the blueprint files are present in the "blueprints" directory, model files are present in "models" directory and controller files are present in the "controllers" directory. The blueprint file names are""" + blueprints + """ The model file names are """ + models + """ The controller file names are """ + controllers + """ 
     
     Modify the code given below to import the appropriate entities in the existing code.
@@ -364,10 +369,10 @@ for py_file in iterate_py_files(out_dir):
     Instructions for modifying code are: 
     1) Do not remove or change any existing code or implementation from the below code strictly. 
     2) Import all python functions present in controller files in blueprint file code.
-    3) Import all the database models present in model files in controller file code. Do not remove the exisiting python functions present in controller file code.
-    4) Import blueprints and register blueprints in server file code. 
+    3) Import the database models present in model files in controller file code. Do not remove or change the existing python functions present in controller file code strictly, do not create flask Blueprint.
+    4) Import and register blueprints in server file code. 
     5) Import python modules required in the code. 
-    6) Do not import any files in the model file code. Just import the python modules required. Do not remove the database models present in model file code.
+    6) Do not change anything in the model file code.
     6) Do not import the file inside itself. Use proper project hierarchy while importing files. 
     
      \n""" + """
